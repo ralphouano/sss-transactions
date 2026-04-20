@@ -43,4 +43,4 @@ RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framewor
 
 EXPOSE 10000
 
-CMD ["sh", "-c", "php artisan migrate --force && php artisan optimize && php -S 0.0.0.0:${PORT:-10000} -t public"]
+CMD ["sh", "-c", "php artisan migrate --force && php artisan db:seed --class=RoleSeeder --force && php artisan optimize && php -S 0.0.0.0:${PORT:-10000} -t public"]
