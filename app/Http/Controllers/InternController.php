@@ -4,14 +4,27 @@ namespace App\Http\Controllers;
 
 use App\Models\Transaction;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Spatie\Permission\Exceptions\RoleDoesNotExist;
 
 class InternController extends Controller
 {
     public function dashboard()
     {
-        $interns = User::role('intern')->get(['id', 'intern_name']);
+        try {
+            $interns = User::role('intern')->get(['id', 'intern_name']);
+        } catch (RoleDoesNotExist $e) {
+            // Fallback for mis-seeded or stale role cache in production.
+            Log::warning('Intern role missing while loading dashboard, using fallback query.', [
+                'error' => $e->getMessage(),
+            ]);
+
+            $interns = User::query()
+                ->whereNotNull('intern_name')
+                ->get(['id', 'intern_name']);
+        }
         
         return Inertia::render('Intern/Dashboard', [
             'interns' => $interns
