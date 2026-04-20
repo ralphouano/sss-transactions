@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -23,6 +24,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+
+            $appUrl = (string) config('app.url');
+            if (str_starts_with($appUrl, 'https://')) {
+                URL::forceRootUrl(rtrim($appUrl, '/'));
+            }
+        }
+
         RateLimiter::for('intern-record', function (Request $request) {
             return Limit::perMinute(20)->by($request->ip());
         });
