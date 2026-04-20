@@ -74,27 +74,18 @@ Use SSL:
 
 ---
 
-## 4) Render: create a Web Service
+## 4) Render: create a Web Service (Docker recommended)
 
 1. In Render, click **New +** -> **Web Service**.
 2. Connect your GitHub repo.
-3. Set service values:
+3. Render will auto-detect `Dockerfile` at project root.
+4. Keep deploy type as **Docker** and deploy.
 
-- **Runtime**: `PHP`
-- **Build Command**:
+No manual build/start commands are required in Render when using this repository's `Dockerfile`.
 
-```bash
-composer install --no-dev --optimize-autoloader && npm install && npm run build
-```
-
-- **Start Command**:
-
-```bash
-php artisan migrate --force && php artisan optimize && php -S 0.0.0.0:$PORT -t public
-```
-
-> This command is simple and works on Render for small-medium apps.  
-> For more advanced production traffic, move to nginx + php-fpm architecture.
+Why Docker here:
+- Prevents "composer: command not found" from Node runtime mismatch.
+- Ensures both PHP/Composer and Node/Vite build are available in one deploy pipeline.
 
 ---
 
@@ -149,8 +140,9 @@ Notes:
 1. Push all code to GitHub.
 2. Trigger Render deploy.
 3. Watch deploy logs for:
+   - Docker image build success
    - Composer install success
-   - Node install/build success
+   - Node/Vite build success
    - `php artisan migrate --force` success
 4. Open Render URL and verify pages load.
 
@@ -209,17 +201,21 @@ For now, if signatures are stored in the database (base64), this is not affected
 ### B) "No application encryption key has been specified"
 - Set `APP_KEY` in Render env.
 
-### C) Changes not reflected after deploy
+### C) "composer: command not found"
+- This usually means the service was created as a Node runtime instead of Docker/PHP.
+- Ensure Render is deploying this repo as **Docker** (it should auto-detect the `Dockerfile`).
+
+### D) Changes not reflected after deploy
 - Confirm deployment used latest commit.
 - Restart service from Render dashboard.
 
-### D) Migration/table errors for sessions/cache/jobs
+### E) Migration/table errors for sessions/cache/jobs
 - Ensure required migration files exist and were applied:
   - `sessions`
   - `cache`
   - `jobs`
 
-### E) 500 error with no useful message
+### F) 500 error with no useful message
 - Temporarily set `LOG_LEVEL=debug` and check Render logs.
 - Keep `APP_DEBUG=false`.
 
