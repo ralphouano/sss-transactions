@@ -8,9 +8,11 @@ use App\Models\Transaction;
 use App\Services\ReportBuilderService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use PhpOffice\PhpSpreadsheet\Writer\Html as HtmlWriter;
+use Throwable;
 
 class ReportController extends Controller
 {
@@ -47,18 +49,28 @@ class ReportController extends Controller
         ]);
 
         $month = $validated['month'] ?? Carbon::now()->format('Y-m');
-        $spreadsheet = $this->reportBuilder->buildSpreadsheet($month);
-        $filename = "transactions-{$month}.xlsx";
-        $outputPath = storage_path("app/private/{$filename}");
+        try {
+            $spreadsheet = $this->reportBuilder->buildSpreadsheet($month);
+            $filename = "transactions-{$month}.xlsx";
+            $outputPath = storage_path("app/private/{$filename}");
 
-        if (! is_dir(dirname($outputPath))) {
-            mkdir(dirname($outputPath), 0755, true);
+            if (! is_dir(dirname($outputPath))) {
+                mkdir(dirname($outputPath), 0755, true);
+            }
+
+            $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+            $writer->save($outputPath);
+
+            return response()->download($outputPath, $filename)->deleteFileAfterSend(true);
+        } catch (Throwable $e) {
+            Log::error('Report export failed.', [
+                'month' => $month,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->route('admin.reports.index', ['month' => $month])
+                ->with('error', 'Export failed: ' . $e->getMessage());
         }
-
-        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
-        $writer->save($outputPath);
-
-        return response()->download($outputPath, $filename)->deleteFileAfterSend(true);
     }
 
     public function exportStatus(ReportExport $reportExport)
@@ -90,13 +102,25 @@ class ReportController extends Controller
         ]);
 
         $month = $validated['month'] ?? Carbon::now()->format('Y-m');
-        $spreadsheet = $this->reportBuilder->buildSpreadsheet($month);
-        $writer = new HtmlWriter($spreadsheet);
-        $writer->setSheetIndex(0);
+        try {
+            $spreadsheet = $this->reportBuilder->buildSpreadsheet($month);
+            $writer = new HtmlWriter($spreadsheet);
+            $writer->setSheetIndex(0);
 
-        ob_start();
-        $writer->save('php://output');
-        $html = (string) ob_get_clean();
+            ob_start();
+            $writer->save('php://output');
+            $html = (string) ob_get_clean();
+        } catch (Throwable $e) {
+            Log::error('Report print render failed.', [
+                'month' => $month,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response(
+                "<!doctype html><html><head><meta charset=\"utf-8\"><title>Print Error</title></head><body style=\"font-family:Arial,sans-serif;padding:24px;\"><h3>Unable to generate print preview</h3><p>{$e->getMessage()}</p></body></html>",
+                422
+            );
+        }
 
         $styles = <<<CSS
 @page { margin: 12mm; }

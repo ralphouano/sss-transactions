@@ -12,15 +12,14 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use RuntimeException;
 
 class ReportBuilderService
 {
     public function buildSpreadsheet(string $month): Spreadsheet
     {
         $transactions = $this->getMonthlyTransactions($month);
-        $templatePath = storage_path('app/templates/reports/SSS-e-center.xlsx');
-
-        abort_unless(file_exists($templatePath), 500, 'Report template not found.');
+        $templatePath = $this->resolveTemplatePath();
 
         $spreadsheet = IOFactory::load($templatePath);
         $sheet = $spreadsheet->getActiveSheet();
@@ -181,6 +180,24 @@ class ReportBuilderService
         }
 
         return $rows;
+    }
+
+    private function resolveTemplatePath(): string
+    {
+        $candidatePaths = [
+            storage_path('app/templates/reports/SSS-e-center.xlsx'),
+            base_path('storage/app/templates/reports/SSS-e-center.xlsx'),
+            public_path('templates/reports/SSS-e-center.xlsx'),
+            base_path('SSS-e-center.xlsx'),
+        ];
+
+        foreach ($candidatePaths as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+
+        throw new RuntimeException('Report template not found. Place SSS-e-center.xlsx in storage/app/templates/reports/.');
     }
 }
 
