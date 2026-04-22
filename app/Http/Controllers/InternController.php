@@ -61,7 +61,7 @@ class InternController extends Controller
             'signature' => ['required', 'string', 'regex:/^data:image\/[a-zA-Z]+;base64,/'],
             'transactions' => 'required|array|min:1',
             'transactions.*' => 'required|string|in:' . implode(',', $allowedTransactionTypes),
-            'submit_pin' => 'required|string|min:4|max:12',
+            'submit_pin' => ['required', 'string', 'min:4', 'max:6', 'regex:/^[0-9]+$/'],
         ]);
 
         if (! $pinHash || ! Hash::check($validated['submit_pin'], $pinHash)) {

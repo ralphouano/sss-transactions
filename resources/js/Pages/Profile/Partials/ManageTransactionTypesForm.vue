@@ -62,9 +62,9 @@ const submitUpdate = (typeId: number) => {
             </p>
         </header>
 
-        <form @submit.prevent="submitCreate" class="mt-6 rounded-lg border border-blue-100 bg-blue-50/40 p-4">
+        <form @submit.prevent="submitCreate" class="mt-4 rounded-lg border border-blue-100 bg-blue-50/40 p-3">
             <h3 class="mb-3 text-sm font-semibold text-[#0038A8]">Add New Transaction Type</h3>
-            <div class="grid gap-4 md:grid-cols-2">
+            <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end">
                 <div>
                     <InputLabel for="new-label" value="Display Label" class="text-[#0038A8]" />
                     <TextInput
@@ -76,67 +76,76 @@ const submitUpdate = (typeId: number) => {
                     />
                     <InputError class="mt-2" :message="createForm.errors.label" />
                 </div>
-                <div class="flex items-end">
+                <div class="flex items-center pb-1">
                     <label class="flex items-center">
                         <Checkbox name="is_active" v-model:checked="createForm.is_active" />
                         <span class="ms-2 text-sm text-slate-700">Active</span>
                     </label>
                 </div>
+                <PrimaryButton
+                    class="h-10 justify-center rounded-lg border border-[#f5c542] bg-gradient-to-r from-[#0038A8] to-[#00339a] px-4 text-sm font-semibold text-white shadow-md transition hover:from-[#0037a3] hover:to-[#002f8d] focus:ring-[#0038A8]"
+                    :disabled="createForm.processing"
+                >
+                    Add
+                </PrimaryButton>
             </div>
-            <PrimaryButton
-                class="mt-4 justify-center rounded-lg border border-[#f5c542] bg-gradient-to-r from-[#0038A8] to-[#00339a] text-sm font-semibold text-white shadow-md transition hover:from-[#0037a3] hover:to-[#002f8d] focus:ring-[#0038A8]"
-                :disabled="createForm.processing"
-            >
-                Add Transaction Type
-            </PrimaryButton>
+            <InputError class="mt-2" :message="createForm.errors.label" />
         </form>
 
-        <div class="mt-6 space-y-3">
-            <div
-                v-for="type in props.transactionTypes"
-                :key="type.id"
-                class="rounded-lg border border-blue-100 bg-white p-4"
-            >
-                <form
-                    @submit.prevent="submitUpdate(type.id)"
-                    class="grid gap-3 md:grid-cols-4"
-                >
-                    <div class="md:col-span-2">
-                        <InputLabel :for="`label-${type.id}`" value="Label" class="text-[#0038A8]" />
-                        <TextInput
-                            :id="`label-${type.id}`"
-                            v-model="editForms[type.id].label"
-                            class="mt-1 block w-full rounded-md border-blue-200 focus:border-[#0038A8] focus:ring-[#0038A8]"
-                            required
-                        />
-                        <InputError class="mt-2" :message="editForms[type.id].errors.label" />
-                    </div>
-                    <div>
-                        <InputLabel :for="`sort-${type.id}`" value="Sort Order" class="text-[#0038A8]" />
-                        <TextInput
-                            :id="`sort-${type.id}`"
-                            v-model="editForms[type.id].sort_order"
-                            type="number"
-                            class="mt-1 block w-full rounded-md border-blue-200 focus:border-[#0038A8] focus:ring-[#0038A8]"
-                            min="1"
-                            required
-                        />
-                        <InputError class="mt-2" :message="editForms[type.id].errors.sort_order" />
-                    </div>
-                    <div class="flex items-end justify-between gap-2">
-                        <label class="mb-2 flex items-center">
-                            <Checkbox :name="`active-${type.id}`" v-model:checked="editForms[type.id].is_active" />
-                            <span class="ms-2 text-sm text-slate-700">Active</span>
-                        </label>
-                        <PrimaryButton
-                            class="justify-center rounded-lg border border-[#f5c542] bg-gradient-to-r from-[#0038A8] to-[#00339a] text-xs font-semibold text-white shadow-md transition hover:from-[#0037a3] hover:to-[#002f8d] focus:ring-[#0038A8]"
-                            :disabled="editForms[type.id].processing"
-                        >
-                            Save
-                        </PrimaryButton>
-                    </div>
-                </form>
-            </div>
+        <div class="mt-4 overflow-x-auto rounded-lg border border-blue-100 bg-white">
+            <table class="min-w-full text-sm">
+                <thead class="bg-blue-50/80 text-left text-xs uppercase tracking-wide text-blue-900/80">
+                    <tr>
+                        <th class="px-3 py-2 font-semibold">Label</th>
+                        <th class="px-3 py-2 font-semibold">Order</th>
+                        <th class="px-3 py-2 font-semibold">Active</th>
+                        <th class="px-3 py-2 font-semibold text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr
+                        v-for="type in props.transactionTypes"
+                        :key="type.id"
+                        class="border-t border-blue-50 align-top"
+                    >
+                        <td class="px-3 py-2">
+                            <TextInput
+                                :id="`label-${type.id}`"
+                                v-model="editForms[type.id].label"
+                                class="block w-full rounded-md border-blue-200 text-sm focus:border-[#0038A8] focus:ring-[#0038A8]"
+                                required
+                            />
+                            <InputError class="mt-1" :message="editForms[type.id].errors.label" />
+                        </td>
+                        <td class="px-3 py-2">
+                            <TextInput
+                                :id="`sort-${type.id}`"
+                                v-model="editForms[type.id].sort_order"
+                                type="number"
+                                class="block w-24 rounded-md border-blue-200 text-sm focus:border-[#0038A8] focus:ring-[#0038A8]"
+                                min="1"
+                                required
+                            />
+                            <InputError class="mt-1" :message="editForms[type.id].errors.sort_order" />
+                        </td>
+                        <td class="px-3 py-2">
+                            <label class="flex items-center pt-2">
+                                <Checkbox :name="`active-${type.id}`" v-model:checked="editForms[type.id].is_active" />
+                                <span class="ms-2 text-xs text-slate-700">Yes</span>
+                            </label>
+                        </td>
+                        <td class="px-3 py-2 text-right">
+                            <PrimaryButton
+                                class="justify-center rounded-lg border border-[#f5c542] bg-gradient-to-r from-[#0038A8] to-[#00339a] px-3 text-xs font-semibold text-white shadow-md transition hover:from-[#0037a3] hover:to-[#002f8d] focus:ring-[#0038A8]"
+                                :disabled="editForms[type.id].processing"
+                                @click.prevent="submitUpdate(type.id)"
+                            >
+                                Save
+                            </PrimaryButton>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </section>
 </template>

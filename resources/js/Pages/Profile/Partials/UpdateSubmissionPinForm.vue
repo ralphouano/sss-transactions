@@ -47,6 +47,9 @@ const submit = () => {
                     v-model="form.pin"
                     type="password"
                     inputmode="numeric"
+                    maxlength="6"
+                    pattern="[0-9]{1,6}"
+                    @input="form.pin = String(form.pin).replace(/[^0-9]/g, '').slice(0, 6)"
                     class="mt-1 block w-full rounded-md border-blue-200 focus:border-[#0038A8] focus:ring-[#0038A8]"
                     required
                 />
@@ -60,6 +63,9 @@ const submit = () => {
                     v-model="form.pin_confirmation"
                     type="password"
                     inputmode="numeric"
+                    maxlength="6"
+                    pattern="[0-9]{1,6}"
+                    @input="form.pin_confirmation = String(form.pin_confirmation).replace(/[^0-9]/g, '').slice(0, 6)"
                     class="mt-1 block w-full rounded-md border-blue-200 focus:border-[#0038A8] focus:ring-[#0038A8]"
                     required
                 />

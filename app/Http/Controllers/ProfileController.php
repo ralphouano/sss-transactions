@@ -105,7 +105,7 @@ class ProfileController extends Controller
         abort_unless(Schema::hasTable('system_settings'), 500, 'System settings table is missing.');
 
         $validated = $request->validate([
-            'pin' => ['required', 'string', 'min:4', 'max:12', 'confirmed', 'regex:/^[0-9]+$/'],
+            'pin' => ['required', 'string', 'min:4', 'max:6', 'confirmed', 'regex:/^[0-9]+$/'],
         ]);
 
         SystemSetting::query()->updateOrCreate(

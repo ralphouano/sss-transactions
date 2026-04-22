@@ -50,16 +50,43 @@
 
               <div class="space-y-2">
                 <Label class="text-base font-medium">Transaction Types</Label>
-                <div class="grid grid-cols-2 gap-4">
-                  <label v-for="type in props.transactionTypes" :key="type.key" class="flex items-center space-x-2 rounded-lg border border-blue-100 bg-blue-50/50 px-3 py-2.5 transition hover:bg-blue-100/50">
-                    <input
-                      type="checkbox"
-                      :value="type.key"
-                      v-model="form.transactions"
-                      class="rounded border-gray-300"
-                    />
-                    <span class="text-base">{{ type.label }}</span>
-                  </label>
+                <div class="space-y-3 rounded-lg border border-blue-100 bg-blue-50/40 p-3">
+                  <Input
+                    id="transaction-search"
+                    v-model="transactionSearch"
+                    type="text"
+                    placeholder="Type to search transaction type..."
+                    class="h-11 text-base"
+                  />
+
+                  <div class="max-h-44 overflow-y-auto rounded-md border border-blue-100 bg-white">
+                    <button
+                      v-for="type in filteredTransactionTypes"
+                      :key="type.key"
+                      type="button"
+                      class="flex w-full items-center justify-between border-b border-blue-50 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-blue-50 last:border-b-0"
+                      @click="toggleTransactionType(type.key)"
+                    >
+                      <span>{{ type.label }}</span>
+                      <span v-if="isTransactionSelected(type.key)" class="text-xs font-semibold text-[#0038A8]">Selected</span>
+                    </button>
+                    <p v-if="filteredTransactionTypes.length === 0" class="px-3 py-2 text-sm text-slate-500">
+                      No matching transaction type found.
+                    </p>
+                  </div>
+
+                  <div v-if="selectedTransactionTypes.length" class="flex flex-wrap gap-2">
+                    <button
+                      v-for="type in selectedTransactionTypes"
+                      :key="type.key"
+                      type="button"
+                      class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-medium text-blue-900"
+                      @click="toggleTransactionType(type.key)"
+                    >
+                      {{ type.label }}
+                      <span class="text-slate-400">x</span>
+                    </button>
+                  </div>
                 </div>
                 <InputError :message="form.errors.transactions" />
               </div>
@@ -104,6 +131,9 @@
               autocomplete="off"
               placeholder="Enter PIN"
               class="h-11"
+              maxlength="6"
+              pattern="[0-9]{1,6}"
+              @input="form.submit_pin = String(form.submit_pin).replace(/[^0-9]/g, '').slice(0, 6)"
               required
             />
             <InputError :message="form.errors.submit_pin" />
@@ -122,7 +152,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import PublicTransactionLayout from '@/Layouts/PublicTransactionLayout.vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card/index'
@@ -158,6 +188,27 @@ const form = useForm({
 })
 
 const pinDialogOpen = ref(false)
+const transactionSearch = ref('')
+
+const selectedTransactionTypes = computed(() => props.transactionTypes.filter((type) => form.transactions.includes(type.key)))
+const filteredTransactionTypes = computed(() => {
+  const query = transactionSearch.value.trim().toLowerCase()
+  if (!query) return props.transactionTypes
+
+  return props.transactionTypes.filter((type) => {
+    return type.label.toLowerCase().includes(query) || type.key.toLowerCase().includes(query)
+  })
+})
+
+const isTransactionSelected = (key: string) => form.transactions.includes(key)
+const toggleTransactionType = (key: string) => {
+  if (isTransactionSelected(key)) {
+    form.transactions = form.transactions.filter((item) => item !== key)
+    return
+  }
+
+  form.transactions.push(key)
+}
 
 const openPinDialog = () => {
   form.clearErrors('submit_pin')
