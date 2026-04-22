@@ -187,6 +187,7 @@ class ReportBuilderService
         $candidatePaths = [
             storage_path('app/templates/reports/SSS-e-center.xlsx'),
             base_path('storage/app/templates/reports/SSS-e-center.xlsx'),
+            storage_path('app/public/SSS-e-center.xlsx'),
             public_path('templates/reports/SSS-e-center.xlsx'),
             base_path('SSS-e-center.xlsx'),
         ];
