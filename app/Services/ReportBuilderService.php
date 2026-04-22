@@ -9,6 +9,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 
 class ReportBuilderService
@@ -25,6 +27,8 @@ class ReportBuilderService
 
         $startRow = 10;
         $baseEndRow = 14;
+        $totalBaseRow = 16;
+        $summaryBaseTemplateRow = 19;
         $baseCapacity = ($baseEndRow - $startRow) + 1;
         $extraRows = max(0, $transactions->count() - $baseCapacity);
 
@@ -48,12 +52,34 @@ class ReportBuilderService
             $row++;
         }
 
+        if ($row > $startRow) {
+            $sheet->getStyle("A{$startRow}:E".($row - 1))
+                ->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_LEFT);
+            $sheet->getStyle("A{$startRow}:E".($row - 1))
+                ->getFont()
+                ->setSize(8)
+                ->getColor()
+                ->setARGB(Color::COLOR_BLACK);
+        }
+
+        // Total transaction count row is at A16:D16 in the base template.
+        // When data rows expand beyond row 14, this row shifts down by extraRows.
+        $totalRow = $totalBaseRow + $extraRows;
+        $sheet->setCellValue("A{$totalRow}", 'TOTAL TRANSACTIONS');
+        $sheet->setCellValue("D{$totalRow}", $transactions->count());
+        $sheet->getStyle("A{$totalRow}:D{$totalRow}")
+            ->getFont()
+            ->setSize(8)
+            ->getColor()
+            ->setARGB(Color::COLOR_BLACK);
+
         $typeCounts = $this->buildTransactionTypeCounts($transactions);
         $transactionTypeRows = $this->getOrderedTransactionTypeRows($typeCounts);
 
-        // Summary block starts at row 18 in the template.
+        // Summary block starts at row 19 in the template.
         // If data rows were inserted before row 15, shift this block accordingly.
-        $summaryBaseRow = 18 + $extraRows;
+        $summaryBaseRow = $summaryBaseTemplateRow + $extraRows;
         $defaultSummaryRowsPerColumn = 8;
         $itemsPerColumn = max($defaultSummaryRowsPerColumn, (int) ceil(max(count($transactionTypeRows), 1) / 2));
 
@@ -81,6 +107,12 @@ class ReportBuilderService
 
             $sheet->setCellValue($labelColumn . $targetRow, strtoupper($item['label']));
             $sheet->setCellValue($countColumn . $targetRow, $item['count']);
+
+            $sheet->getStyle($labelColumn . $targetRow . ':' . $countColumn . $targetRow)
+                ->getFont()
+                ->setSize(8)
+                ->getColor()
+                ->setARGB(Color::COLOR_BLACK);
         }
 
         return $spreadsheet;

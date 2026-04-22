@@ -43,7 +43,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::delete('/interns/{user}', [InternManagementController::class, 'destroy'])->name('interns.destroy');
     
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::post('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+    Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
     Route::get('/reports/export/{reportExport}/status', [ReportController::class, 'exportStatus'])->name('reports.export.status');
     Route::get('/reports/export/{reportExport}/download', [ReportController::class, 'exportDownload'])->name('reports.export.download');
     Route::get('/reports/print', [ReportController::class, 'print'])->name('reports.print');

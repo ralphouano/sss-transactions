@@ -1,10 +1,15 @@
 <template>
-  <Head title="Transaction History" />
-  <iframe ref="printFrame" class="hidden" title="print-frame" @load="handlePrintFrameLoad" />
+  <Head title="Monthly Transactions" />
+  <iframe
+    ref="printFrame"
+    class="pointer-events-none fixed -left-[9999px] top-0 h-px w-px border-0 opacity-0"
+    title="print-frame"
+    @load="handlePrintFrameLoad"
+  />
 
   <AuthenticatedLayout>
     <template #header>
-      <h2 class="font-semibold text-xl text-blue-950 leading-tight">Transaction History</h2>
+      <h2 class="font-semibold text-xl text-blue-950 leading-tight">Monthly Transactions</h2>
     </template>
 
     <div class="py-10">
@@ -15,18 +20,12 @@
           <CardHeader>
             <div class="flex justify-between items-center">
               <div>
-                <CardTitle class="text-blue-900">History</CardTitle>
+                <CardTitle class="text-blue-900">Monthly Transactions</CardTitle>
                 <CardDescription>Track all transactions and filter by month for report generation</CardDescription>
               </div>
               <div class="flex items-center gap-2">
                 <Button type="button" variant="outline" @click="printReport">Print</Button>
-                <Button
-                  class="bg-[#003087] hover:bg-[#0b4cb8] transition-all duration-200"
-                  :disabled="isExporting"
-                  @click="exportReport"
-                >
-                  {{ isExporting ? 'Preparing Export...' : 'Export XLSX' }}
-                </Button>
+                <Button class="bg-[#003087] hover:bg-[#0b4cb8] transition-all duration-200" @click="exportReport">Export XLSX</Button>
               </div>
             </div>
           </CardHeader>
@@ -44,14 +43,11 @@
                 <Button type="button" class="bg-[#003087] hover:bg-[#0b4cb8] transition-all duration-200" @click="applyMonthFilter">Apply Month</Button>
               </div>
             </div>
-            <p v-if="exportMessage" class="mb-3 rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900">
-              {{ exportMessage }}
-            </p>
             <Table class="rounded-lg overflow-hidden">
               <TableHeader>
                 <TableRow class="bg-blue-50/70">
                   <TableHead>ID</TableHead>
-                  <TableHead>Date-Time</TableHead>
+                  <TableHead>Timestamp</TableHead>
                   <TableHead>Intern</TableHead>
                   <TableHead>Member Name</TableHead>
                   <TableHead>Transaction</TableHead>
@@ -134,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card/index'
@@ -175,9 +171,6 @@ const props = defineProps<{
 const transactions = computed(() => props.transactions.data)
 const selectedMonth = ref(props.month ?? '')
 const isApplyingMonth = ref(false)
-const isExporting = ref(false)
-const exportMessage = ref('')
-const exportPollInterval = ref<number | null>(null)
 
 const applyMonthFilter = () => {
   isApplyingMonth.value = true
@@ -200,60 +193,8 @@ const applyMonthFilter = () => {
 
 const printFrame = ref<HTMLIFrameElement | null>(null)
 
-const clearExportPoll = () => {
-  if (exportPollInterval.value) {
-    window.clearInterval(exportPollInterval.value)
-    exportPollInterval.value = null
-  }
-}
-
-const exportReport = async () => {
-  if (isExporting.value) return
-
-  isExporting.value = true
-  exportMessage.value = 'Export queued. Waiting for file generation...'
-
-  try {
-    const response = await window.axios.post(route('admin.reports.export'), {
-      month: selectedMonth.value || undefined,
-    })
-
-    const exportId = response.data?.exportId
-    if (!exportId) throw new Error('Invalid export response.')
-
-    clearExportPoll()
-    exportPollInterval.value = window.setInterval(async () => {
-      try {
-        const statusResponse = await window.axios.get(route('admin.reports.export.status', exportId))
-        const status = statusResponse.data?.status
-
-        if (status === 'completed' && statusResponse.data?.downloadUrl) {
-          clearExportPoll()
-          isExporting.value = false
-          exportMessage.value = 'Export ready. Downloading file...'
-          window.location.href = statusResponse.data.downloadUrl
-          setTimeout(() => {
-            exportMessage.value = ''
-          }, 2000)
-          return
-        }
-
-        if (status === 'failed') {
-          clearExportPoll()
-          isExporting.value = false
-          exportMessage.value = statusResponse.data?.errorMessage || 'Export failed. Please try again.'
-        }
-      } catch {
-        clearExportPoll()
-        isExporting.value = false
-        exportMessage.value = 'Unable to check export status. Please try again.'
-      }
-    }, 1500)
-  } catch {
-    isExporting.value = false
-    clearExportPoll()
-    exportMessage.value = 'Unable to queue export. Please try again.'
-  }
+const exportReport = () => {
+  window.location.href = route('admin.reports.export', { month: selectedMonth.value || undefined })
 }
 
 const printReport = () => {
@@ -283,10 +224,6 @@ const goToPage = (page: number) => {
     },
   )
 }
-
-onBeforeUnmount(() => {
-  clearExportPoll()
-})
 
 const toDateKey = (value: string) => new Date(value).toLocaleDateString('en-CA')
 

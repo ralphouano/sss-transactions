@@ -47,18 +47,18 @@ class ReportController extends Controller
         ]);
 
         $month = $validated['month'] ?? Carbon::now()->format('Y-m');
-        $reportExport = ReportExport::query()->create([
-            'month' => $month,
-            'status' => 'queued',
-            'requested_by' => $request->user()?->id,
-        ]);
+        $spreadsheet = $this->reportBuilder->buildSpreadsheet($month);
+        $filename = "transactions-{$month}.xlsx";
+        $outputPath = storage_path("app/private/{$filename}");
 
-        GenerateMonthlyReportExport::dispatch($reportExport->id);
+        if (! is_dir(dirname($outputPath))) {
+            mkdir(dirname($outputPath), 0755, true);
+        }
 
-        return response()->json([
-            'exportId' => $reportExport->id,
-            'status' => $reportExport->status,
-        ]);
+        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
+        $writer->save($outputPath);
+
+        return response()->download($outputPath, $filename)->deleteFileAfterSend(true);
     }
 
     public function exportStatus(ReportExport $reportExport)
@@ -98,8 +98,51 @@ class ReportController extends Controller
         $writer->save('php://output');
         $html = (string) ob_get_clean();
 
+        $styles = <<<CSS
+@page { margin: 12mm; }
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    background: #eef3fb;
+    color: #0f172a;
+    font-family: "Segoe UI", Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 16px;
+}
+.print-wrap {
+    width: 100%;
+    max-width: 1100px;
+    background: #ffffff;
+    border: 1px solid #dbe7ff;
+    border-radius: 12px;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+    padding: 18px;
+}
+.print-wrap table {
+    margin: 0 auto !important;
+}
+.print-wrap img {
+    border-radius: 4px;
+}
+@media print {
+    body {
+        background: #fff;
+        display: block;
+        padding: 0;
+    }
+    .print-wrap {
+        max-width: none;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0;
+    }
+}
+CSS;
+
         return response(
-            "<!doctype html><html><head><meta charset=\"utf-8\"><title>Print Report {$month}</title><style>@page{margin:12mm;}body{margin:0;background:#fff;font-family:Arial,sans-serif;display:flex;justify-content:center;}.print-wrap{width:100%;display:flex;justify-content:center;padding:0;}table{margin:0 auto !important;}@media print{body{background:#fff;display:block;}.print-wrap{display:block;padding:0;}table{margin:0 auto !important;}}</style></head><body><div class=\"print-wrap\">{$html}</div><script>window.onload=function(){window.print();};</script></body></html>"
+            "<!doctype html><html><head><meta charset=\"utf-8\"><title>Print Report {$month}</title><style>{$styles}</style></head><body><div class=\"print-wrap\">{$html}</div><script>window.onload=function(){window.print();};</script></body></html>"
         );
     }
 

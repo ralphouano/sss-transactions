@@ -31,7 +31,7 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        $shouldLoadAdminTypeCounts = $request->routeIs('dashboard', 'admin.*');
+        $shouldLoadAdminTypeCounts = $request->routeIs('admin.reports.*');
 
         return [
             ...parent::share($request),

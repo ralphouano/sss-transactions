@@ -21,8 +21,8 @@
 
             <Card class="sss-surface sss-gold-accent border-blue-200">
               <CardHeader class="pb-2">
-                <CardDescription>Overall Transactions</CardDescription>
-                <CardTitle class="text-3xl text-blue-900">{{ summary.total_count }}</CardTitle>
+                <CardDescription>Transactions This Month ({{ summary.month_label }})</CardDescription>
+                <CardTitle class="text-3xl text-blue-900">{{ summary.month_count }}</CardTitle>
               </CardHeader>
             </Card>
 
@@ -104,7 +104,8 @@ interface Transaction {
 defineProps<{
   summary: {
     today_count: number
-    total_count: number
+    month_count: number
+    month_label: string
     today_unique_interns: number
     date: string
   }

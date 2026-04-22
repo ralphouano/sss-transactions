@@ -27,7 +27,7 @@
           class="block rounded-md px-3 py-2 text-sm transition-all duration-200"
           :class="isActive('admin.reports.*') ? activeClass : inactiveClass"
         >
-          Transaction History
+          Monthly Transactions
         </Link>
 
         <Link
