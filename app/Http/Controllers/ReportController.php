@@ -33,7 +33,7 @@ class ReportController extends Controller
         $query->where('created_at', '>=', $start)
             ->where('created_at', '<', $end);
         $monthTotalCount = (clone $query)->count();
-        $transactions = $query->orderBy('created_at')->paginate(50)->withQueryString();
+        $transactions = $query->orderByDesc('created_at')->paginate(50)->withQueryString();
         
         return Inertia::render('Admin/Reports', [
             'transactions' => $transactions,

@@ -1,8 +1,13 @@
 #!/usr/bin/env sh
 set -eu
 
-echo "[startup] Running database migrations..."
-php artisan migrate --force
+if [ "${RESET_DB_ON_DEPLOY:-0}" = "1" ]; then
+  echo "[startup] RESET_DB_ON_DEPLOY=1 detected. Running fresh migration (destructive)..."
+  php artisan migrate:fresh --force
+else
+  echo "[startup] Running database migrations..."
+  php artisan migrate --force
+fi
 
 echo "[startup] Seeding required roles/admin..."
 php artisan db:seed --class=RoleSeeder --force

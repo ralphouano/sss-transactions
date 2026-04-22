@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Spatie\Permission\Exceptions\RoleDoesNotExist;
 
@@ -19,7 +20,14 @@ class InternController extends Controller
     public function dashboard()
     {
         try {
-            $interns = User::role('intern')->get(['id', 'intern_name']);
+            $interns = User::role(['intern', 'admin'])
+                ->get(['id', 'intern_name', 'name'])
+                ->map(fn (User $user) => [
+                    'id' => $user->id,
+                    'intern_name' => $user->intern_name ?: $user->name,
+                ])
+                ->sortBy('intern_name')
+                ->values();
         } catch (RoleDoesNotExist $e) {
             // Fallback for mis-seeded or stale role cache in production.
             Log::warning('Intern role missing while loading dashboard, using fallback query.', [
@@ -27,8 +35,17 @@ class InternController extends Controller
             ]);
 
             $interns = User::query()
-                ->whereNotNull('intern_name')
-                ->get(['id', 'intern_name']);
+                ->where(function ($query) {
+                    $query->whereNotNull('intern_name')
+                        ->orWhereNotNull('name');
+                })
+                ->get(['id', 'intern_name', 'name'])
+                ->map(fn (User $user) => [
+                    'id' => $user->id,
+                    'intern_name' => $user->intern_name ?: $user->name,
+                ])
+                ->sortBy('intern_name')
+                ->values();
         }
         
         return Inertia::render('Intern/Dashboard', [
@@ -63,6 +80,12 @@ class InternController extends Controller
             'transactions.*' => 'required|string|in:' . implode(',', $allowedTransactionTypes),
             'submit_pin' => ['required', 'string', 'min:4', 'max:6', 'regex:/^[0-9]+$/'],
         ]);
+
+        $validated['member_name'] = Str::of($validated['member_name'])
+            ->lower()
+            ->squish()
+            ->title()
+            ->toString();
 
         if (! $pinHash || ! Hash::check($validated['submit_pin'], $pinHash)) {
             return redirect()->back()->withErrors([

@@ -16,10 +16,10 @@
           <CardContent>
             <form @submit.prevent="openPinDialog" class="space-y-6">
               <div class="space-y-2">
-                <Label for="intern_id" class="text-base font-medium">Select Intern</Label>
+                <Label for="intern_id" class="text-base font-medium">Select Assistor</Label>
                 <Select v-model="form.intern_id">
                   <SelectTrigger class="h-12 text-base">
-                    <SelectValue placeholder="Select an intern" />
+                    <SelectValue placeholder="Select an assistor" />
                   </SelectTrigger>
                   <SelectContent position="popper" class="text-base">
                     <SelectItem
@@ -43,6 +43,7 @@
                   type="text"
                   placeholder="Enter member name"
                   class="h-12 text-base"
+                  @input="normalizeMemberNameInput"
                   required
                 />
                 <InputError :message="form.errors.member_name" />
@@ -208,6 +209,16 @@ const toggleTransactionType = (key: string) => {
   }
 
   form.transactions.push(key)
+}
+
+const normalizeName = (value: string) => value
+  .toLowerCase()
+  .replace(/\s+/g, ' ')
+  .trimStart()
+  .replace(/\b\w/g, (char) => char.toUpperCase())
+
+const normalizeMemberNameInput = () => {
+  form.member_name = normalizeName(String(form.member_name ?? ''))
 }
 
 const openPinDialog = () => {
