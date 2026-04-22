@@ -14,7 +14,7 @@
             <CardDescription class="text-base">Fill in the member details and select transaction types</CardDescription>
           </CardHeader>
           <CardContent>
-            <form @submit.prevent="submit" class="space-y-6">
+            <form @submit.prevent="openPinDialog" class="space-y-6">
               <div class="space-y-2">
                 <Label for="intern_id" class="text-base font-medium">Select Intern</Label>
                 <Select v-model="form.intern_id">
@@ -51,10 +51,10 @@
               <div class="space-y-2">
                 <Label class="text-base font-medium">Transaction Types</Label>
                 <div class="grid grid-cols-2 gap-4">
-                  <label v-for="type in transactionTypes" :key="type.value" class="flex items-center space-x-2 rounded-lg border border-blue-100 bg-blue-50/50 px-3 py-2.5 transition hover:bg-blue-100/50">
+                  <label v-for="type in props.transactionTypes" :key="type.key" class="flex items-center space-x-2 rounded-lg border border-blue-100 bg-blue-50/50 px-3 py-2.5 transition hover:bg-blue-100/50">
                     <input
                       type="checkbox"
-                      :value="type.value"
+                      :value="type.key"
                       v-model="form.transactions"
                       class="rounded border-gray-300"
                     />
@@ -70,6 +70,7 @@
                   label="Member Signature"
                   :error="form.errors.signature"
                 />
+                <InputError :message="form.errors.submit_pin" />
               </div>
 
               <div class="flex justify-end">
@@ -82,10 +83,46 @@
         </Card>
       </div>
     </div>
+
+    <Dialog v-model:open="pinDialogOpen">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Enter Submission PIN</DialogTitle>
+          <DialogDescription>
+            Enter the admin PIN to confirm transaction submission.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form @submit.prevent="submitWithPin" class="space-y-4">
+          <div class="space-y-2">
+            <Label for="submit_pin" class="text-sm font-medium">PIN</Label>
+            <Input
+              id="submit_pin"
+              v-model="form.submit_pin"
+              type="password"
+              inputmode="numeric"
+              autocomplete="off"
+              placeholder="Enter PIN"
+              class="h-11"
+              required
+            />
+            <InputError :message="form.errors.submit_pin" />
+          </div>
+
+          <DialogFooter class="gap-2 sm:justify-end">
+            <Button type="button" variant="outline" @click="closePinDialog">Cancel</Button>
+            <Button type="submit" :disabled="form.processing" class="bg-[#003087] hover:bg-[#0b4cb8]">
+              {{ form.processing ? 'Submitting...' : 'Confirm & Submit' }}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   </PublicTransactionLayout>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { Head, useForm } from '@inertiajs/vue3'
 import PublicTransactionLayout from '@/Layouts/PublicTransactionLayout.vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card/index'
@@ -93,6 +130,7 @@ import { Button } from '@/Components/ui/button/index'
 import { Input } from '@/Components/ui/input/index'
 import { Label } from '@/Components/ui/label/index'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select/index'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/Components/ui/dialog/index'
 import InputError from '@/Components/InputError.vue'
 
 interface Intern {
@@ -100,39 +138,46 @@ interface Intern {
   intern_name: string
 }
 
+interface TransactionType {
+  id: number
+  key: string
+  label: string
+}
+
 const props = defineProps<{
   interns: Intern[]
+  transactionTypes: TransactionType[]
 }>()
-
-const transactionTypes = [
-  { value: 'maternity_benefit', label: 'Maternity Benefit' },
-  { value: 'unemployment_benefit', label: 'Unemployment Benefit' },
-  { value: 'sickness_benefit', label: 'Sickness Benefit' },
-  { value: 'disability_claim', label: 'Disability Claim' },
-  { value: 'retirement_claim', label: 'Retirement Claim' },
-  { value: 'funeral_claim', label: 'Funeral Claim' },
-  { value: 'death_claim', label: 'Death Claim' },
-  { value: 'salary_loan', label: 'Salary Loan' },
-  { value: 'calamity_emergency', label: 'Calamity/Emergency' },
-  { value: 'pension_loan', label: 'Pension Loan' },
-  { value: 'consoloan', label: 'Consoloan' },
-  { value: 'mysss_card', label: 'mySSS Card' },
-  { value: 'employment_history', label: 'Employment History' },
-  { value: 'contribution_details', label: 'Contribution Details' },
-  { value: 'generate_prn', label: 'Generate PRN' },
-]
 
 const form = useForm({
   intern_id: '',
   member_name: '',
   signature: '',
   transactions: [] as string[],
+  submit_pin: '',
 })
 
-const submit = () => {
+const pinDialogOpen = ref(false)
+
+const openPinDialog = () => {
+  form.clearErrors('submit_pin')
+  form.submit_pin = ''
+  pinDialogOpen.value = true
+}
+
+const closePinDialog = () => {
+  pinDialogOpen.value = false
+  form.submit_pin = ''
+}
+
+const submitWithPin = () => {
   form.post(route('intern.record'), {
     onSuccess: () => {
       form.reset()
+      pinDialogOpen.value = false
+    },
+    onFinish: () => {
+      form.submit_pin = ''
     },
   })
 }

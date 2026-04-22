@@ -1,5 +1,6 @@
 <template>
   <Head title="Transaction History" />
+  <iframe ref="printFrame" class="hidden" title="print-frame" @load="handlePrintFrameLoad" />
 
   <AuthenticatedLayout>
     <template #header>
@@ -17,20 +18,35 @@
                 <CardTitle class="text-blue-900">History</CardTitle>
                 <CardDescription>Track all transactions and filter by month for report generation</CardDescription>
               </div>
-              <Button class="bg-[#003087] hover:bg-[#0b4cb8] transition-all duration-200" @click="exportReport">Export CSV</Button>
+              <div class="flex items-center gap-2">
+                <Button type="button" variant="outline" @click="printReport">Print</Button>
+                <Button
+                  class="bg-[#003087] hover:bg-[#0b4cb8] transition-all duration-200"
+                  :disabled="isExporting"
+                  @click="exportReport"
+                >
+                  {{ isExporting ? 'Preparing Export...' : 'Export XLSX' }}
+                </Button>
+              </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent :class="isApplyingMonth ? 'opacity-90 transition-opacity duration-150' : 'opacity-100 transition-opacity duration-150'">
             <div class="mb-4 flex flex-col gap-3 rounded-lg border border-blue-100 bg-blue-50/50 p-3 sm:flex-row sm:items-end sm:justify-between">
               <div class="space-y-1">
                 <Label for="history-month" class="text-sm font-medium text-blue-900">Filter Month</Label>
                 <Input id="history-month" v-model="selectedMonth" type="month" class="h-10 w-56" />
               </div>
-              <div class="flex gap-2">
-                <Button type="button" variant="outline" @click="clearMonthFilter">Show All</Button>
-                <Button type="button" class="bg-[#003087] hover:bg-[#0b4cb8] transition-all duration-200" @click="applyMonthFilter">Apply Filter</Button>
+              <div class="flex items-end gap-3">
+                <div class="rounded-md border border-blue-100 bg-white px-3 py-2 text-right">
+                  <div class="text-[11px] uppercase tracking-wide text-blue-700/80">Monthly Total</div>
+                  <div class="text-lg font-semibold text-[#0038A8]">{{ props.monthTotalCount }}</div>
+                </div>
+                <Button type="button" class="bg-[#003087] hover:bg-[#0b4cb8] transition-all duration-200" @click="applyMonthFilter">Apply Month</Button>
               </div>
             </div>
+            <p v-if="exportMessage" class="mb-3 rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+              {{ exportMessage }}
+            </p>
             <Table class="rounded-lg overflow-hidden">
               <TableHeader>
                 <TableRow class="bg-blue-50/70">
@@ -81,6 +97,35 @@
                 </template>
               </TableBody>
             </Table>
+            <div
+              v-if="props.transactions.last_page > 1"
+              class="mt-4 flex flex-col gap-3 border-t border-blue-100 pt-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <p class="text-sm text-slate-600">
+                Showing {{ props.transactions.from ?? 0 }}-{{ props.transactions.to ?? 0 }} of {{ props.transactions.total }} transactions
+              </p>
+              <div class="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  :disabled="props.transactions.current_page <= 1"
+                  @click="goToPage(props.transactions.current_page - 1)"
+                >
+                  Previous
+                </Button>
+                <span class="text-sm font-medium text-blue-900">
+                  Page {{ props.transactions.current_page }} of {{ props.transactions.last_page }}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  :disabled="props.transactions.current_page >= props.transactions.last_page"
+                  @click="goToPage(props.transactions.current_page + 1)"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -89,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { Head, router } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card/index'
@@ -99,6 +144,7 @@ import { Label } from '@/Components/ui/label/index'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table/index'
 import { Badge } from '@/Components/ui/badge/index'
 import AdminSidebar from '@/Components/AdminSidebar.vue'
+import { formatTransactionType } from '@/lib/transactionType'
 
 interface Transaction {
   id: number
@@ -111,40 +157,142 @@ interface Transaction {
   }
 }
 
+interface PaginatedTransactions {
+  data: Transaction[]
+  current_page: number
+  last_page: number
+  total: number
+  from: number | null
+  to: number | null
+}
+
 const props = defineProps<{
-  transactions: Transaction[]
+  transactions: PaginatedTransactions
   month: string | null
+  monthTotalCount: number
 }>()
 
-const transactions = props.transactions
+const transactions = computed(() => props.transactions.data)
 const selectedMonth = ref(props.month ?? '')
+const isApplyingMonth = ref(false)
+const isExporting = ref(false)
+const exportMessage = ref('')
+const exportPollInterval = ref<number | null>(null)
 
 const applyMonthFilter = () => {
+  isApplyingMonth.value = true
   router.get(
     route('admin.reports.index'),
     { month: selectedMonth.value || undefined },
-    { preserveState: true, preserveScroll: true, replace: true },
+    {
+      preserveState: false,
+      preserveScroll: true,
+      replace: true,
+      only: ['transactions', 'month', 'monthTotalCount'],
+      onFinish: () => {
+        setTimeout(() => {
+          isApplyingMonth.value = false
+        }, 120)
+      },
+    },
   )
 }
 
-const clearMonthFilter = () => {
-  selectedMonth.value = ''
+const printFrame = ref<HTMLIFrameElement | null>(null)
+
+const clearExportPoll = () => {
+  if (exportPollInterval.value) {
+    window.clearInterval(exportPollInterval.value)
+    exportPollInterval.value = null
+  }
+}
+
+const exportReport = async () => {
+  if (isExporting.value) return
+
+  isExporting.value = true
+  exportMessage.value = 'Export queued. Waiting for file generation...'
+
+  try {
+    const response = await window.axios.post(route('admin.reports.export'), {
+      month: selectedMonth.value || undefined,
+    })
+
+    const exportId = response.data?.exportId
+    if (!exportId) throw new Error('Invalid export response.')
+
+    clearExportPoll()
+    exportPollInterval.value = window.setInterval(async () => {
+      try {
+        const statusResponse = await window.axios.get(route('admin.reports.export.status', exportId))
+        const status = statusResponse.data?.status
+
+        if (status === 'completed' && statusResponse.data?.downloadUrl) {
+          clearExportPoll()
+          isExporting.value = false
+          exportMessage.value = 'Export ready. Downloading file...'
+          window.location.href = statusResponse.data.downloadUrl
+          setTimeout(() => {
+            exportMessage.value = ''
+          }, 2000)
+          return
+        }
+
+        if (status === 'failed') {
+          clearExportPoll()
+          isExporting.value = false
+          exportMessage.value = statusResponse.data?.errorMessage || 'Export failed. Please try again.'
+        }
+      } catch {
+        clearExportPoll()
+        isExporting.value = false
+        exportMessage.value = 'Unable to check export status. Please try again.'
+      }
+    }, 1500)
+  } catch {
+    isExporting.value = false
+    clearExportPoll()
+    exportMessage.value = 'Unable to queue export. Please try again.'
+  }
+}
+
+const printReport = () => {
+  if (!printFrame.value) return
+  printFrame.value.src = route('admin.reports.print', { month: selectedMonth.value || undefined })
+}
+
+const handlePrintFrameLoad = () => {
+  try {
+    printFrame.value?.contentWindow?.focus()
+    printFrame.value?.contentWindow?.print()
+  } catch {
+    // PDF viewer controls the print behavior in some browsers.
+  }
+}
+
+const goToPage = (page: number) => {
+  if (page < 1 || page > props.transactions.last_page) return
   router.get(
     route('admin.reports.index'),
-    {},
-    { preserveState: true, preserveScroll: true, replace: true },
+    { month: selectedMonth.value || undefined, page },
+    {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+      only: ['transactions', 'month', 'monthTotalCount'],
+    },
   )
 }
 
-const exportReport = () => {
-  window.location.href = route('admin.reports.export', { month: selectedMonth.value || undefined })
-}
+onBeforeUnmount(() => {
+  clearExportPoll()
+})
 
 const toDateKey = (value: string) => new Date(value).toLocaleDateString('en-CA')
 
 const shouldShowDateBoundary = (index: number) => {
   if (index === 0) return true
-  return toDateKey(transactions[index].created_at) !== toDateKey(transactions[index - 1].created_at)
+  return toDateKey(transactions.value[index].created_at) !== toDateKey(transactions.value[index - 1].created_at)
 }
 
 const formatBoundaryDate = (value: string) => new Date(value).toLocaleDateString(undefined, {
@@ -160,12 +308,4 @@ const formatTime = (value: string) => new Date(value).toLocaleTimeString([], {
   second: '2-digit',
 })
 
-const formatTransactionType = (value: string) => value
-  .split('_')
-  .map((word) => {
-    if (word.toLowerCase() === 'mysss') return 'mySSS'
-    if (word.toLowerCase() === 'prn') return 'PRN'
-    return word.charAt(0).toUpperCase() + word.slice(1)
-  })
-  .join(' ')
 </script>

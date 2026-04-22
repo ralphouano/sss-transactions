@@ -37,10 +37,12 @@ WORKDIR /var/www/html
 
 COPY --from=php-deps /var/www/html ./
 COPY --from=frontend /app/public/build ./public/build
+COPY docker/start.sh /usr/local/bin/start.sh
 
 RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/framework/testing bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod +x /usr/local/bin/start.sh
 
 EXPOSE 10000
 
-CMD ["sh", "-c", "php artisan migrate --force && php artisan db:seed --class=RoleSeeder --force && php artisan db:seed --class=AdminUserSeeder --force && php artisan permission:cache-reset && php artisan optimize && php -S 0.0.0.0:${PORT:-10000} -t public"]
+CMD ["/usr/local/bin/start.sh"]

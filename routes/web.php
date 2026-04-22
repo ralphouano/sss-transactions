@@ -14,9 +14,19 @@ Route::get('/dashboard', [AdminController::class, 'index'])
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::redirect('/settings', '/profile');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/profile/transaction-types', [ProfileController::class, 'storeTransactionType'])
+        ->middleware('role:admin')
+        ->name('profile.transaction-types.store');
+    Route::patch('/profile/transaction-types/{transactionType}', [ProfileController::class, 'updateTransactionType'])
+        ->middleware('role:admin')
+        ->name('profile.transaction-types.update');
+    Route::patch('/profile/submission-pin', [ProfileController::class, 'updateSubmissionPin'])
+        ->middleware('role:admin')
+        ->name('profile.submission-pin.update');
 });
 
 Route::prefix('intern')->name('intern.')->group(function () {
@@ -33,7 +43,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::delete('/interns/{user}', [InternManagementController::class, 'destroy'])->name('interns.destroy');
     
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+    Route::post('/reports/export', [ReportController::class, 'export'])->name('reports.export');
+    Route::get('/reports/export/{reportExport}/status', [ReportController::class, 'exportStatus'])->name('reports.export.status');
+    Route::get('/reports/export/{reportExport}/download', [ReportController::class, 'exportDownload'])->name('reports.export.download');
+    Route::get('/reports/print', [ReportController::class, 'print'])->name('reports.print');
 });
 
 require __DIR__.'/auth.php';

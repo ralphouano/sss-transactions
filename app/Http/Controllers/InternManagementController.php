@@ -12,6 +12,8 @@ class InternManagementController extends Controller
 {
     public function index()
     {
+        $this->authorize('viewAnyIntern', User::class);
+
         $interns = User::role('intern')
             ->latest()
             ->get(['id', 'intern_name']);
@@ -23,6 +25,8 @@ class InternManagementController extends Controller
 
     public function update(Request $request, User $user)
     {
+        $this->authorize('updateIntern', $user);
+
         $validated = $request->validate([
             'intern_name' => 'required|string|max:255',
         ]);
@@ -37,6 +41,8 @@ class InternManagementController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('createIntern', User::class);
+
         $validated = $request->validate([
             'intern_name' => 'required|string|max:255',
         ]);
@@ -56,9 +62,7 @@ class InternManagementController extends Controller
 
     public function destroy(User $user)
     {
-        if (! $user->hasRole('intern')) {
-            return redirect()->back()->with('error', 'Only intern accounts can be removed here.');
-        }
+        $this->authorize('deleteIntern', $user);
 
         $user->delete();
 

@@ -22,7 +22,7 @@ const form = useForm({
     <section>
         <header>
             <h2 class="text-lg font-semibold text-[#0038A8]">
-                Profile Information
+                Account Settings
             </h2>
 
             <p class="mt-1 text-sm text-slate-600">

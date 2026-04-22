@@ -21,19 +21,13 @@ php artisan serve
 # 3. Create test users (see SETUP_AND_RUN.md for details)
 ```
 
-## 📋 Default Login Credentials
+## 📋 Local Demo Credentials
 
-After running `QUICKSTART.bat`:
+`QUICKSTART.bat` and `CREATE_USERS.bat` are **local development helpers only**.
 
-**Admin Account:**
-- Email: `admin@sss.com`
-- Password: `password123`
-- Access: Manage interns, view reports, export data
-
-**Intern Accounts:**
-- Email: `intern1@sss.com` / `intern2@sss.com`
-- Password: `password123`
-- Access: Record transactions with signatures
+- They now generate random passwords at runtime.
+- Credentials are printed to the terminal once created.
+- Scripts refuse to run demo-user creation outside `APP_ENV=local`.
 
 ## ✨ Key Features
 
@@ -112,7 +106,7 @@ The system supports 7 SSS transaction types:
 - **Daily Reports**: Today's transactions
 - **Weekly Reports**: Current week's transactions
 - **Monthly Reports**: Current month's transactions
-- **CSV Export**: Download with all transaction details
+- **XLSX Export**: Queued generation for monthly report files
 
 ## 🎨 User Interface
 

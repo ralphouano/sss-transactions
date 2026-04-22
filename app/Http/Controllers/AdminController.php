@@ -11,11 +11,13 @@ class AdminController extends Controller
 {
     public function index(): Response
     {
-        $today = Carbon::today();
+        $todayStart = Carbon::today();
+        $todayEnd = (clone $todayStart)->addDay();
 
         $todayTransactions = Transaction::with('intern:id,intern_name')
-            ->whereDate('created_at', $today)
-            ->latest()
+            ->where('created_at', '>=', $todayStart)
+            ->where('created_at', '<', $todayEnd)
+            ->orderByDesc('created_at')
             ->get();
 
         $todayCount = $todayTransactions->count();
@@ -27,7 +29,7 @@ class AdminController extends Controller
                 'today_count' => $todayCount,
                 'total_count' => $totalCount,
                 'today_unique_interns' => $todayUniqueInterns,
-                'date' => $today->toDateString(),
+                'date' => $todayStart->toDateString(),
             ],
             'today_transactions' => $todayTransactions,
         ]);

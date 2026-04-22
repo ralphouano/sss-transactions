@@ -89,6 +89,7 @@ import { Head } from '@inertiajs/vue3'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card/index'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table/index'
 import { Badge } from '@/Components/ui/badge/index'
+import { formatTransactionType } from '@/lib/transactionType'
 
 interface Transaction {
   id: number
@@ -116,12 +117,4 @@ const formatTime = (value: string) => new Date(value).toLocaleTimeString([], {
   second: '2-digit',
 })
 
-const formatTransactionType = (value: string) => value
-  .split('_')
-  .map((word) => {
-    if (word.toLowerCase() === 'mysss') return 'mySSS'
-    if (word.toLowerCase() === 'prn') return 'PRN'
-    return word.charAt(0).toUpperCase() + word.slice(1)
-  })
-  .join(' ')
 </script>

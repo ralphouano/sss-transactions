@@ -118,6 +118,7 @@ DB_SSLMODE=require
 SESSION_DRIVER=database
 CACHE_STORE=database
 QUEUE_CONNECTION=database
+RUN_QUEUE_WORKER=1
 
 FILESYSTEM_DISK=local
 
@@ -144,6 +145,7 @@ Notes:
    - Composer install success
    - Node/Vite build success
    - `php artisan migrate --force` success
+   - `php artisan app:health-check` success
 4. Open Render URL and verify pages load.
 
 ---
@@ -161,11 +163,23 @@ After first successful deploy:
 
 If any DB errors appear, re-check DB env vars and SSL mode.
 
+Run a production health check after migration:
+
+```bash
+php artisan app:health-check
+```
+
 ---
 
-## 8) Queue worker (optional but recommended)
+## 8) Queue worker options
 
-If you process jobs asynchronously, create a second Render service as **Background Worker**:
+This Docker image can run a queue worker inside the web container by setting:
+
+```env
+RUN_QUEUE_WORKER=1
+```
+
+For higher reliability/scaling, create a second Render service as **Background Worker** and set `RUN_QUEUE_WORKER=0` on the web service:
 
 - **Build Command**:
 
