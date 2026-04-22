@@ -17,8 +17,6 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-di
 
 COPY . .
 
-RUN php artisan package:discover --ansi
-
 FROM node:22-bookworm AS frontend
 WORKDIR /app
 

@@ -33,7 +33,14 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(TransactionType::class, TransactionTypePolicy::class);
         Gate::policy(User::class, UserPolicy::class);
 
-        if ($this->app->environment('production') && ! $this->isMigrationCommand()) {
+        if (
+            $this->app->environment('production')
+            && (
+                ! $this->app->runningInConsole()
+                || $this->isHealthCheckCommand()
+            )
+            && ! $this->isMigrationCommand()
+        ) {
             app(CriticalTableHealthService::class)->assertReady();
         }
 
@@ -67,5 +74,17 @@ class AppServiceProvider extends ServiceProvider
         $command = $argv[1] ?? '';
 
         return in_array($command, ['migrate', 'migrate:fresh', 'migrate:refresh', 'migrate:reset', 'migrate:rollback'], true);
+    }
+
+    private function isHealthCheckCommand(): bool
+    {
+        if (! $this->app->runningInConsole()) {
+            return false;
+        }
+
+        $argv = $_SERVER['argv'] ?? [];
+        $command = $argv[1] ?? '';
+
+        return $command === 'app:health-check';
     }
 }
