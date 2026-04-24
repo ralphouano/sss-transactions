@@ -19,8 +19,8 @@
         </button>
       </div>
     </div>
-    <div class="flex justify-center">
-      <div ref="canvasHost" class="w-fit rounded-lg border-2 border-dashed border-blue-400 bg-blue-50/40 p-1 shadow-inner">
+    <div ref="canvasViewport" class="w-full">
+      <div class="mx-auto w-fit rounded-lg border-2 border-dashed border-blue-400 bg-blue-50/40 p-1 shadow-inner">
         <canvas
           ref="canvas"
           class="block touch-none rounded-md bg-white"
@@ -57,7 +57,7 @@ const emit = defineEmits<{
 }>()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
-const canvasHost = ref<HTMLDivElement | null>(null)
+const canvasViewport = ref<HTMLDivElement | null>(null)
 let signaturePad: SignaturePad | null = null
 const errorMessage = ref(props.error)
 
@@ -85,8 +85,8 @@ const resizeCanvas = () => {
   if (!canvas.value || !signaturePad) return
 
   const ratio = Math.max(window.devicePixelRatio || 1, 1)
-  const parentWidth = canvasHost.value?.clientWidth ?? props.width
-  const targetWidth = Math.min(parentWidth, props.width)
+  const viewportWidth = canvasViewport.value?.clientWidth ?? props.width
+  const targetWidth = Math.min(Math.max(viewportWidth - 8, 320), props.width)
 
   const previousData = signaturePad.isEmpty() ? null : signaturePad.toData()
 
