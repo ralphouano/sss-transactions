@@ -209,6 +209,7 @@ const toggleTransactionType = (key: string) => {
   }
 
   form.transactions.push(key)
+  transactionSearch.value = ''
 }
 
 const normalizeName = (value: string) => value
