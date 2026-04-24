@@ -2,28 +2,32 @@
   <div class="signature-pad-container rounded-lg border border-blue-200 bg-white p-4">
     <div class="mb-3 flex items-center justify-between gap-3">
       <label v-if="label" class="text-base font-medium text-blue-950">{{ label }}</label>
-      <button
-        type="button"
-        @click="clear"
-        class="rounded-md bg-red-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-red-600"
-      >
-        Clear
-      </button>
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          @click="undo"
+          class="rounded-md border border-blue-200 bg-white px-3 py-2 text-sm font-medium text-blue-900 transition hover:bg-blue-50"
+        >
+          Undo
+        </button>
+        <button
+          type="button"
+          @click="clear"
+          class="rounded-md bg-red-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-red-600"
+        >
+          Clear
+        </button>
+      </div>
     </div>
-    <div class="rounded-lg border-2 border-dashed border-blue-400 bg-blue-50/40 p-1 shadow-inner">
-      <canvas
-        ref="canvas"
-        class="block w-full touch-none rounded-md bg-white"
-        @mousedown="startDrawing"
-        @mousemove="draw"
-        @mouseup="stopDrawing"
-        @mouseleave="stopDrawing"
-        @touchstart.prevent="handleTouchStart"
-        @touchmove.prevent="handleTouchMove"
-        @touchend.prevent="stopDrawing"
-      ></canvas>
+    <div class="flex justify-center">
+      <div ref="canvasHost" class="w-fit rounded-lg border-2 border-dashed border-blue-400 bg-blue-50/40 p-1 shadow-inner">
+        <canvas
+          ref="canvas"
+          class="block touch-none rounded-md bg-white"
+        ></canvas>
+      </div>
     </div>
-    <p class="mt-2 text-xs text-gray-600">Sign inside the bordered box above.</p>
+    <p class="mt-2 text-sm text-gray-700">Please sign inside the box. Use Undo for the last stroke or Clear to start over.</p>
     <p v-if="errorMessage" class="mt-1 text-sm text-red-600">{{ errorMessage }}</p>
   </div>
 </template>
@@ -45,7 +49,7 @@ const props = withDefaults(defineProps<Props>(), {
   label: 'Signature',
   error: '',
   width: 600,
-  height: 200
+  height: 260
 })
 
 const emit = defineEmits<{
@@ -53,6 +57,7 @@ const emit = defineEmits<{
 }>()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
+const canvasHost = ref<HTMLDivElement | null>(null)
 let signaturePad: SignaturePad | null = null
 const errorMessage = ref(props.error)
 
@@ -80,7 +85,7 @@ const resizeCanvas = () => {
   if (!canvas.value || !signaturePad) return
 
   const ratio = Math.max(window.devicePixelRatio || 1, 1)
-  const parentWidth = canvas.value.parentElement?.clientWidth ?? props.width
+  const parentWidth = canvasHost.value?.clientWidth ?? props.width
   const targetWidth = Math.min(parentWidth, props.width)
 
   const previousData = signaturePad.isEmpty() ? null : signaturePad.toData()
@@ -101,10 +106,18 @@ onMounted(() => {
   if (canvas.value) {
     signaturePad = new SignaturePad(canvas.value, {
       backgroundColor: 'rgb(255, 255, 255)',
-      penColor: 'rgb(0, 0, 0)'
+      penColor: 'rgb(0, 0, 0)',
+      minWidth: 2,
+      maxWidth: 4.5,
+      throttle: 8,
+      velocityFilterWeight: 0.6,
     })
     resizeCanvas()
     window.addEventListener('resize', resizeCanvas)
+
+    signaturePad.addEventListener('beginStroke', () => {
+      errorMessage.value = ''
+    })
 
     signaturePad.addEventListener('endStroke', () => {
       if (signaturePad) {
@@ -131,32 +144,13 @@ const clear = () => {
   }
 }
 
-const startDrawing = () => {
-  errorMessage.value = ''
-}
-
-const draw = () => {
-}
-
-const stopDrawing = () => {
-}
-
-const handleTouchStart = (e: TouchEvent) => {
-  const touch = e.touches[0]
-  const mouseEvent = new MouseEvent('mousedown', {
-    clientX: touch.clientX,
-    clientY: touch.clientY
-  })
-  canvas.value?.dispatchEvent(mouseEvent)
-}
-
-const handleTouchMove = (e: TouchEvent) => {
-  const touch = e.touches[0]
-  const mouseEvent = new MouseEvent('mousemove', {
-    clientX: touch.clientX,
-    clientY: touch.clientY
-  })
-  canvas.value?.dispatchEvent(mouseEvent)
+const undo = () => {
+  if (!signaturePad) return
+  const data = signaturePad.toData()
+  if (!data.length) return
+  data.pop()
+  signaturePad.fromData(data)
+  emit('update:modelValue', signaturePad.isEmpty() ? '' : signaturePad.toDataURL('image/png'))
 }
 </script>
 

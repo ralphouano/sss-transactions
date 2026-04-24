@@ -97,6 +97,7 @@
                   v-model="form.signature"
                   label="Member Signature"
                   :error="form.errors.signature"
+                  :height="280"
                 />
                 <InputError :message="form.errors.submit_pin" />
               </div>
