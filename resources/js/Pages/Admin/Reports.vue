@@ -52,18 +52,19 @@
                   <TableHead>Member Name</TableHead>
                   <TableHead>Transaction</TableHead>
                   <TableHead>Signature</TableHead>
+                  <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 <TableRow v-if="transactions.length === 0">
-                  <TableCell colspan="6" class="text-center text-gray-500">
+                  <TableCell colspan="7" class="text-center text-gray-500">
                     No transactions found for the selected filter
                   </TableCell>
                 </TableRow>
                 <template v-else>
                   <template v-for="(transaction, index) in transactions" :key="transaction.id">
                     <TableRow v-if="shouldShowDateBoundary(index)" class="bg-blue-100/70">
-                      <TableCell colspan="6" class="border-y border-blue-200 py-2.5 font-semibold text-[#0038A8]">
+                      <TableCell colspan="7" class="border-y border-blue-200 py-2.5 font-semibold text-[#0038A8]">
                         {{ formatBoundaryDate(transaction.created_at) }}
                       </TableCell>
                     </TableRow>
@@ -87,6 +88,11 @@
                           class="h-12 w-auto border rounded"
                         />
                         <span v-else>N/A</span>
+                      </TableCell>
+                      <TableCell>
+                        <Button type="button" variant="outline" class="h-8 px-2 text-xs" @click="openConsent(transaction)">
+                          View Consent
+                        </Button>
                       </TableCell>
                     </TableRow>
                   </template>
@@ -127,6 +133,44 @@
       </div>
     </div>
   </AuthenticatedLayout>
+
+  <Dialog v-model:open="consentDialogOpen">
+    <DialogContent class="w-[min(1100px,95vw)] sm:max-w-5xl">
+      <DialogHeader>
+        <DialogTitle>Data Privacy Notice for Assisting Members at the E-Center</DialogTitle>
+        <DialogDescription>
+          Submitted consent details for this transaction record.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div v-if="selectedConsentTransaction" class="max-h-[60vh] space-y-3 overflow-y-auto rounded-md border border-blue-100 bg-blue-50/20 p-3 text-sm leading-relaxed text-slate-700">
+        <p>1. I authorize SSS Pagadian Branch personnel to assist me in my SSS online registration/account access and related transactions.</p>
+        <p>2. I certify that all information provided is true and correct and I understand liabilities for false information, misrepresentation, or fraud.</p>
+        <p>3. I authorize SSS to use and verify submitted personal data for processing and legal purposes related to this application.</p>
+        <p>4. I agree that collected information may be used and retained by SSS for processing purposes.</p>
+        <p>5. I understand SSS shall keep my personal data confidential and secure, and disclose only when authorized or legally required.</p>
+        <p>6. I understand no internet/electronic storage method is absolutely secure, but SSS applies organizational, physical, and technical safeguards.</p>
+        <hr class="border-blue-100">
+        <p><strong>Name & Signature:</strong> {{ selectedConsentTransaction.member_name }}</p>
+        <p><strong>Date:</strong> {{ formatConsentDate(selectedConsentTransaction.created_at) }}</p>
+        <p><strong>Assisted by:</strong> {{ selectedConsentTransaction.intern?.intern_name || 'N/A' }}</p>
+        <div>
+          <p class="mb-1"><strong>Member Signature:</strong></p>
+          <img
+            v-if="selectedConsentTransaction.signature"
+            :src="selectedConsentTransaction.signature"
+            alt="Member Signature"
+            class="h-28 w-auto rounded border border-blue-200 bg-white p-1"
+          />
+          <p v-else class="text-slate-500">No signature captured.</p>
+        </div>
+      </div>
+
+      <DialogFooter>
+        <Button type="button" variant="outline" @click="consentDialogOpen = false">Close</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <script setup lang="ts">
@@ -139,6 +183,7 @@ import { Input } from '@/Components/ui/input/index'
 import { Label } from '@/Components/ui/label/index'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table/index'
 import { Badge } from '@/Components/ui/badge/index'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/Components/ui/dialog/index'
 import AdminSidebar from '@/Components/AdminSidebar.vue'
 import { formatTransactionType } from '@/lib/transactionType'
 
@@ -171,6 +216,8 @@ const props = defineProps<{
 const transactions = computed(() => props.transactions.data)
 const selectedMonth = ref(props.month ?? '')
 const isApplyingMonth = ref(false)
+const consentDialogOpen = ref(false)
+const selectedConsentTransaction = ref<Transaction | null>(null)
 
 const applyMonthFilter = () => {
   isApplyingMonth.value = true
@@ -200,6 +247,11 @@ const exportReport = () => {
 const printReport = () => {
   if (!printFrame.value) return
   printFrame.value.src = route('admin.reports.print', { month: selectedMonth.value || undefined })
+}
+
+const openConsent = (transaction: Transaction) => {
+  selectedConsentTransaction.value = transaction
+  consentDialogOpen.value = true
 }
 
 const handlePrintFrameLoad = () => {
@@ -244,5 +296,7 @@ const formatTime = (value: string) => new Date(value).toLocaleTimeString([], {
   minute: '2-digit',
   second: '2-digit',
 })
+
+const formatConsentDate = (value: string) => new Date(value).toLocaleString()
 
 </script>

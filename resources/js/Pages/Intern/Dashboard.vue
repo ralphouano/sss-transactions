@@ -14,7 +14,7 @@
             <CardDescription class="text-base">Fill in the member details and select transaction types</CardDescription>
           </CardHeader>
           <CardContent>
-            <form @submit.prevent="openPinDialog" class="space-y-6">
+            <form @submit.prevent="openPinDialog" class="space-y-6" @focusin="handleFieldInteraction" @click.capture="handleFieldInteraction">
               <div class="space-y-2">
                 <Label for="intern_id" class="text-base font-medium">Select Assistor</Label>
                 <Select v-model="form.intern_id">
@@ -150,6 +150,33 @@
         </form>
       </DialogContent>
     </Dialog>
+
+    <Dialog v-model:open="privacyDialogOpen">
+      <DialogContent class="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Data Privacy Notice for Assisting Members at the E-Center</DialogTitle>
+          <DialogDescription>
+            Please review and confirm this consent notice before encoding transactions.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div class="max-h-[55vh] space-y-3 overflow-y-auto rounded-md border border-blue-100 bg-blue-50/30 p-3 text-sm leading-relaxed text-slate-700">
+          <p>1. I authorize SSS Pagadian Branch personnel to assist me in my SSS online registration/account access and related processes.</p>
+          <p>2. I certify that provided information is true and correct, and I understand liabilities for false information, misrepresentation, or fraud.</p>
+          <p>3. I authorize SSS to use and verify submitted personal data for processing and legal purposes related to this application.</p>
+          <p>4. I agree that collected information may be used and retained by SSS for processing purposes.</p>
+          <p>5. I understand SSS will safeguard personal information under applicable laws and share data only as authorized or legally permitted.</p>
+          <p>6. I understand that while SSS applies security measures, no internet/electronic storage method is absolutely secure.</p>
+        </div>
+
+        <DialogFooter class="gap-2 sm:justify-end">
+          <Button type="button" variant="outline" @click="closePrivacyDialog">Close</Button>
+          <Button type="button" class="bg-[#003087] hover:bg-[#0b4cb8]" @click="acceptPrivacyNotice">
+            I Agree and Continue
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </PublicTransactionLayout>
 </template>
 
@@ -190,6 +217,8 @@ const form = useForm({
 })
 
 const pinDialogOpen = ref(false)
+const privacyDialogOpen = ref(true)
+const privacyAccepted = ref(false)
 const transactionSearch = ref('')
 
 const selectedTransactionTypes = computed(() => props.transactionTypes.filter((type) => form.transactions.includes(type.key)))
@@ -223,7 +252,26 @@ const normalizeMemberNameInput = () => {
   form.member_name = normalizeName(String(form.member_name ?? ''))
 }
 
+const acceptPrivacyNotice = () => {
+  privacyAccepted.value = true
+  privacyDialogOpen.value = false
+}
+
+const closePrivacyDialog = () => {
+  privacyDialogOpen.value = false
+}
+
+const handleFieldInteraction = () => {
+  if (!privacyAccepted.value) {
+    privacyDialogOpen.value = true
+  }
+}
+
 const openPinDialog = () => {
+  if (!privacyAccepted.value) {
+    privacyDialogOpen.value = true
+    return
+  }
   form.clearErrors('submit_pin')
   form.submit_pin = ''
   pinDialogOpen.value = true

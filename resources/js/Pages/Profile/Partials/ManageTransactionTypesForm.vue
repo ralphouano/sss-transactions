@@ -40,13 +40,19 @@ const editForms = reactive(
 const submitCreate = () => {
     createForm.post(route('profile.transaction-types.store'), {
         preserveScroll: true,
-        onSuccess: () => createForm.reset(),
+        onSuccess: () => {
+            createForm.reset();
+            window.location.reload();
+        },
     });
 };
 
 const submitUpdate = (typeId: number) => {
     editForms[typeId].patch(route('profile.transaction-types.update', typeId), {
         preserveScroll: true,
+        onSuccess: () => {
+            window.location.reload();
+        },
     });
 };
 </script>
