@@ -15,14 +15,6 @@
         </Link>
 
         <Link
-          :href="route('admin.interns.index')"
-          class="block rounded-md px-3 py-2 text-sm transition-all duration-200"
-          :class="isActive('admin.interns.*') ? activeClass : inactiveClass"
-        >
-          Manage Interns
-        </Link>
-
-        <Link
           :href="route('admin.reports.index')"
           class="block rounded-md px-3 py-2 text-sm transition-all duration-200"
           :class="isActive('admin.reports.*') ? activeClass : inactiveClass"

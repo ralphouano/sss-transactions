@@ -9,6 +9,7 @@ class Transaction extends Model
 {
     protected $fillable = [
         'intern_id',
+        'assistor_name',
         'member_name',
         'signature',
         'transactions',

@@ -61,7 +61,7 @@
                     v-else
                     class="transition-colors hover:bg-blue-50/60"
                   >
-                    <TableCell>{{ transaction.intern?.intern_name || 'N/A' }}</TableCell>
+                    <TableCell>{{ transaction.assistor_name || transaction.intern?.intern_name || 'N/A' }}</TableCell>
                     <TableCell>{{ transaction.member_name }}</TableCell>
                     <TableCell>
                       <div class="flex flex-wrap gap-1">
@@ -93,6 +93,7 @@ import { formatTransactionType } from '@/lib/transactionType'
 
 interface Transaction {
   id: number
+  assistor_name?: string | null
   member_name: string
   transactions: string[]
   created_at: string

@@ -16,23 +16,17 @@
           <CardContent>
             <form @submit.prevent="openPinDialog" class="space-y-6" @focusin="handleFieldInteraction" @click.capture="handleFieldInteraction">
               <div class="space-y-2">
-                <Label for="intern_id" class="text-base font-medium">Select Assistor</Label>
-                <Select v-model="form.intern_id">
-                  <SelectTrigger class="h-12 text-base">
-                    <SelectValue placeholder="Select an assistor" />
-                  </SelectTrigger>
-                  <SelectContent position="popper" class="text-base">
-                    <SelectItem
-                      v-for="intern in interns"
-                      :key="intern.id"
-                      :value="String(intern.id)"
-                      class="py-2 text-base"
-                    >
-                      {{ intern.intern_name }}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <InputError :message="form.errors.intern_id" />
+                <Label for="assistor_name" class="text-base font-medium">Assisted by</Label>
+                <Input
+                  id="assistor_name"
+                  v-model="form.assistor_name"
+                  type="text"
+                  placeholder="Enter assistor"
+                  class="h-12 text-base"
+                  @input="normalizeAssistorNameInput"
+                  required
+                />
+                <InputError :message="form.errors.assistor_name" />
               </div>
 
               <div class="space-y-2">
@@ -188,14 +182,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Com
 import { Button } from '@/Components/ui/button/index'
 import { Input } from '@/Components/ui/input/index'
 import { Label } from '@/Components/ui/label/index'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select/index'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/Components/ui/dialog/index'
 import InputError from '@/Components/InputError.vue'
-
-interface Intern {
-  id: number
-  intern_name: string
-}
 
 interface TransactionType {
   id: number
@@ -204,12 +192,11 @@ interface TransactionType {
 }
 
 const props = defineProps<{
-  interns: Intern[]
   transactionTypes: TransactionType[]
 }>()
 
 const form = useForm({
-  intern_id: '',
+  assistor_name: '',
   member_name: '',
   signature: '',
   transactions: [] as string[],
@@ -250,6 +237,10 @@ const normalizeName = (value: string) => value
 
 const normalizeMemberNameInput = () => {
   form.member_name = normalizeName(String(form.member_name ?? ''))
+}
+
+const normalizeAssistorNameInput = () => {
+  form.assistor_name = normalizeName(String(form.assistor_name ?? ''))
 }
 
 const acceptPrivacyNotice = () => {

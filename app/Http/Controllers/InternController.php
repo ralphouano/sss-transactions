@@ -6,50 +6,18 @@ use App\Models\Transaction;
 use App\Models\SystemSetting;
 use App\Models\TransactionType;
 use App\Models\User;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
-use Spatie\Permission\Exceptions\RoleDoesNotExist;
 
 class InternController extends Controller
 {
     public function dashboard()
     {
-        try {
-            $interns = User::role(['intern', 'admin'])
-                ->get(['id', 'intern_name', 'name'])
-                ->map(fn (User $user) => [
-                    'id' => $user->id,
-                    'intern_name' => $user->intern_name ?: $user->name,
-                ])
-                ->sortBy('intern_name')
-                ->values();
-        } catch (RoleDoesNotExist $e) {
-            // Fallback for mis-seeded or stale role cache in production.
-            Log::warning('Intern role missing while loading dashboard, using fallback query.', [
-                'error' => $e->getMessage(),
-            ]);
-
-            $interns = User::query()
-                ->where(function ($query) {
-                    $query->whereNotNull('intern_name')
-                        ->orWhereNotNull('name');
-                })
-                ->get(['id', 'intern_name', 'name'])
-                ->map(fn (User $user) => [
-                    'id' => $user->id,
-                    'intern_name' => $user->intern_name ?: $user->name,
-                ])
-                ->sortBy('intern_name')
-                ->values();
-        }
-        
         return Inertia::render('Intern/Dashboard', [
-            'interns' => $interns,
             'transactionTypes' => Schema::hasTable('transaction_types')
                 ? TransactionType::query()
                     ->where('is_active', true)
@@ -73,7 +41,7 @@ class InternController extends Controller
             : null;
 
         $validated = $request->validate([
-            'intern_id' => 'required|exists:users,id',
+            'assistor_name' => 'required|string|max:255',
             'member_name' => 'required|string|max:255',
             'signature' => ['required', 'string', 'regex:/^data:image\/[a-zA-Z]+;base64,/'],
             'transactions' => 'required|array|min:1',
@@ -86,6 +54,24 @@ class InternController extends Controller
             ->squish()
             ->title()
             ->toString();
+        $validated['assistor_name'] = Str::of($validated['assistor_name'])
+            ->lower()
+            ->squish()
+            ->title()
+            ->toString();
+
+        $matchedUserId = User::query()
+            ->whereRaw('LOWER(COALESCE(intern_name, name)) = ?', [Str::lower($validated['assistor_name'])])
+            ->value('id');
+        $fallbackUserId = User::query()->value('id');
+        $internId = $matchedUserId ?? $fallbackUserId;
+
+        if (! $internId) {
+            return redirect()->back()->withErrors([
+                'assistor_name' => 'No valid account is available to map this transaction. Please contact admin.',
+            ]);
+        }
+        $validated['intern_id'] = $internId;
 
         if (! $pinHash || ! Hash::check($validated['submit_pin'], $pinHash)) {
             return redirect()->back()->withErrors([

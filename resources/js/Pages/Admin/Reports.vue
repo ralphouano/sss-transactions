@@ -71,7 +71,7 @@
                     <TableRow class="transition-colors hover:bg-blue-50/60">
                       <TableCell>{{ transaction.id }}</TableCell>
                       <TableCell>{{ formatTime(transaction.created_at) }}</TableCell>
-                      <TableCell>{{ transaction.intern?.intern_name || 'N/A' }}</TableCell>
+                      <TableCell>{{ transaction.assistor_name || transaction.intern?.intern_name || 'N/A' }}</TableCell>
                       <TableCell>{{ transaction.member_name }}</TableCell>
                       <TableCell>
                         <div class="flex gap-1 flex-wrap">
@@ -153,7 +153,7 @@
         <hr class="border-blue-100">
         <p><strong>Name & Signature:</strong> {{ selectedConsentTransaction.member_name }}</p>
         <p><strong>Date:</strong> {{ formatConsentDate(selectedConsentTransaction.created_at) }}</p>
-        <p><strong>Assisted by:</strong> {{ selectedConsentTransaction.intern?.intern_name || 'N/A' }}</p>
+        <p><strong>Assisted by:</strong> {{ selectedConsentTransaction.assistor_name || selectedConsentTransaction.intern?.intern_name || 'N/A' }}</p>
         <div>
           <p class="mb-1"><strong>Member Signature:</strong></p>
           <img
@@ -189,6 +189,7 @@ import { formatTransactionType } from '@/lib/transactionType'
 
 interface Transaction {
   id: number
+  assistor_name?: string | null
   member_name: string
   signature: string
   transactions: string[]

@@ -46,7 +46,7 @@ class ReportBuilderService
                 ->map(fn (string $type) => TransactionTypeFormatter::format($type))
                 ->implode(', ');
             $sheet->setCellValue("D{$row}", $formattedTypes);
-            $sheet->setCellValue("E{$row}", $transaction->intern->intern_name ?? 'N/A');
+            $sheet->setCellValue("E{$row}", $transaction->assistor_name ?? ($transaction->intern->intern_name ?? 'N/A'));
             $counter++;
             $row++;
         }
